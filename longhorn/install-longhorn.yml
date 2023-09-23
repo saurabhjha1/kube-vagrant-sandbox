@@ -1,0 +1,28 @@
+---
+- name: Configure Multipath
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Ensure /etc/multipath.conf exists
+      ansible.builtin.copy:
+        dest: /etc/multipath.conf
+        content: ''
+        force: no
+
+    - name: Add or update blacklist block in /etc/multipath.conf
+      ansible.builtin.blockinfile:
+        path: /etc/multipath.conf
+        block: |
+          blacklist {
+              devnode "^sd[a-z0-9]+"
+          }
+        marker: "# {mark} ANSIBLE MANAGED BLOCK FOR BLACKLIST"
+        create: yes
+
+    - name: Restart multipathd service
+      ansible.builtin.systemd:
+        name: multipathd.service
+        state: restarted
+
