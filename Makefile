@@ -122,7 +122,38 @@ requirements:
 	sudo vagrant plugin install vagrant-libvirt --plugin-version 0.7.0
 	sudo vagrant plugin install vagrant-vbguest --plugin-version 0.31.0
 	sudo vagrant plugin install vagrant-vboxmanage --plugin-version 0.0.2
-	
+
+
+install-iptable-rules:
+	{ \
+	cd ./kubespray ; \
+	IP=$$(vagrant ssh k8s-1 -c "hostname -I" | awk '{ print $$2 }' | tr -d "[:space:]") ; \
+	echo "[Unit]" ; \
+	echo "Description=Port Forwarding from 0.0.0.0:6443 to $$IP:6443" ; \
+	echo "" ; \
+	echo "[Service]" ; \
+	echo "ExecStart=/sbin/iptables -t nat -A PREROUTING -p tcp --dport 6443 -j DNAT --to-destination $$IP:6443" ; \
+	echo "ExecStartPost=/sbin/iptables -t nat -A POSTROUTING -d $$IP/32 -j MASQUERADE" ; \
+	echo "Type=oneshot" ; \
+	echo "RemainAfterExit=yes" ; \
+	echo "" ; \
+	echo "[Install]" ; \
+	echo "WantedBy=multi-user.target" ; \
+	} > /tmp/vagrant-kube-port-forward.service ;
+	sudo cp /tmp/vagrant-kube-port-forward.service /etc/systemd/system/; \
+	sudo systemctl daemon-reload;  
+	sudo systemctl enable vagrant-kube-port-forward.service;
+	sudo systemctl restart vagrant-kube-port-forward.service;	
+	sudo systemctl status vagrant-kube-port-forward.service;	
+
+remove-iptable-rules:
+	sudo iptables -t nat -D PREROUTING -p tcp --dport 6443 -j DNAT --to-destination 192.168.56.101:6443 
+	sudo iptables -t nat -D POSTROUTING -j MASQUERADE 
+	sudo systemctl stop vagrant-kube-port-forward.service 
+	sudo systemctl disable vagrant-kube-port-forward.service 
+	sudo rm /etc/systemd/system/vagrant-kube-port-forward.service 
+	sudo systemctl daemon-reload 
+
 setup-cluster: clone-kubespary vagrant-up provision-cluster install-longhorn install-autoscaler
 
 destroy-cluster:
