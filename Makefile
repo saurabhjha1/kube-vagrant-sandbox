@@ -148,14 +148,13 @@ install-iptable-rules:
 
 remove-iptable-rules:
 	sudo iptables -t nat -D PREROUTING -p tcp --dport 6443 -j DNAT --to-destination 192.168.56.101:6443 
-	sudo iptables -t nat -D POSTROUTING -j MASQUERADE 
 	sudo systemctl stop vagrant-kube-port-forward.service 
 	sudo systemctl disable vagrant-kube-port-forward.service 
 	sudo rm /etc/systemd/system/vagrant-kube-port-forward.service 
 	sudo systemctl daemon-reload 
 
-setup-cluster: clone-kubespary vagrant-up provision-cluster install-longhorn install-autoscaler
+setup-cluster: clone-kubespary vagrant-up provision-cluster install-iptable-rules install-longhorn install-autoscaler
 
-destroy-cluster:
+destroy-cluster: remove-iptable-rules
 	cd ./kubespray && vagrant destroy -f 
 	rm -rf kubespray
