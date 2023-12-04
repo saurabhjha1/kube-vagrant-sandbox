@@ -96,7 +96,7 @@ install-longhorn: fix-multipath longhorn
 install-prometheus:
 	echo "Starting prometheus install"
 	export KUBECONFIG=$(KUBECONFIG); \
-	if ! helm list -n kube-system | grep -q prometheus; then   \
+	if ! helm list -n kube-system | grep -q prometheus-server; then   \
 		helm repo add prometheus-community https://prometheus-community.github.io/helm-charts ; \
 		helm repo update ; \
 		helm install prom-stack prometheus-community/prometheus -n kube-system ; \
@@ -111,6 +111,20 @@ install-keda:
 		helm repo update ; \
 		helm install keda kedacore/keda --namespace keda --create-namespace ; \
 	fi
+
+install-istio:
+	echo "Installing Istio addons"
+	export KUBECONFIG=$(KUBECONFIG); \
+		helm repo add istio https://istio-release.storage.googleapis.com/charts; \
+		helm repo update; \
+		helm install istio-base istio/base -n istio-system --set defaultRevision=default ; \
+		sleep 60; \
+		helm install istiod istio/istiod -n istio-system --wait ; \
+		kubectl create namespace istio-ingress ; \
+		helm install istio-ingress istio/gateway -n istio-ingress --wait ; \
+		kubectl create namespace istio-system ; \
+		kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.19/samples/addons/prometheus.yaml; \
+		kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.19/samples/addons/kiali.yaml; 
 
 install-autoscaler: install-prometheus install-keda
 
