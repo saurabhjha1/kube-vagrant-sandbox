@@ -167,7 +167,7 @@ remove-iptable-rules:
 	sudo rm /etc/systemd/system/vagrant-kube-port-forward.service 
 	sudo systemctl daemon-reload 
 
-setup-cluster: clone-kubespary vagrant-up provision-cluster install-iptable-rules install-longhorn install-autoscaler
+setup-cluster: clone-kubespray vagrant-up provision-cluster install-iptable-rules install-longhorn install-autoscaler
 
 destroy-cluster: remove-iptable-rules
 	cd ./kubespray && vagrant destroy -f 
